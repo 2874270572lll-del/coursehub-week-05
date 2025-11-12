@@ -1,0 +1,58 @@
+services:
+  app:
+    build: .
+    container_name: coursehub-app
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/coursehub?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true&enabledTLSProtocols=TLSv1.2&rewriteBatchedStatements=true
+      - SPRING_DATASOURCE_PASSWORD=lilili2004
+      - SPRING_SQL_INIT_MODE=always
+      - SPRING_DATASOURCE_HIKARI_CONNECTION-TIMEOUT=60000
+      - SPRING_JPA_DATABASE-PLATFORM=org.hibernate.dialect.MySQL8Dialect
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - coursehub-network
+    restart: unless-stopped
+
+  mysql:
+    image: m.daocloud.io/docker.io/mysql:8.0.36  # 保留你的原有镜像
+    pull_policy: never  # 强制使用本地镜像，不远程拉取
+    container_name: coursehub-mysql
+    # 移除 user: root（参考 Todo 项目，用镜像默认 mysql 用户，适配初始化权限）
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=lilili2004
+      - MYSQL_DATABASE=coursehub
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_USER=lilili2004
+      - MYSQL_PASSWORD=lilili2004
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+      - TZ=Asia/Shanghai
+    # 简化启动命令
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --init-connect='SET NAMES utf8mb4'
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 加 :ro 只读权限
+      # - ./src/main/resources/db/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+     # - ./src/main/resources/db/02-data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    networks:
+      - coursehub-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 60s  # 留足脚本执行时间
+
+networks:
+  coursehub-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

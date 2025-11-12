@@ -1,9 +1,10 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/course_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    # Docker MySQL连接配置（数据库名固定为coursehub）
+    url: jdbc:mysql://coursehub-mysql:3306/coursehub?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: lilili2004
-    password: lilili2004
+    username: lilili2004  # 与Docker Compose中MySQL配置一致
+    password: lilili2004  # 与Docker Compose中MySQL配置一致
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -12,10 +13,10 @@ spring:
       max-lifetime: 1800000
 
   jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
+    database-platform: org.hibernate.dialect.MySQL8Dialect  # 适配MySQL8.x
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      ddl-auto: none  # 生产环境禁用自动建表
+    show-sql: true  # 开启SQL日志便于排查
     properties:
       hibernate:
         format_sql: false
@@ -26,8 +27,13 @@ spring:
 
   sql:
     init:
-      mode: never
+      mode: embedded  # 生产环境不重复执行脚本
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      continue-on-error: false
 
 logging:
   level:
-    org.hibernate.SQL: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    root: WARN
